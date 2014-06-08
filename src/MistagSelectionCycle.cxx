@@ -98,18 +98,22 @@ void MistagSelectionCycle::BeginInputData( const SInputData& id ) throw( SError 
 
     Selection* second_selection= new Selection("second_selection");
 
-    second_selection->addSelectionModule(new NTopJetSelection(1,int_infinity(),400,2.4));// top jet candidate with pT > 400
-    second_selection->addSelectionModule(new NBTagSelection(0,0,e_CSVL)); //no b tags
+    second_selection->addSelectionModule(new NTopJetSelection(1,1,400,2.4));// top jet candidate with pT > 400
+    //second_selection->addSelectionModule(new NBTagSelection(0,0,e_CSVL)); //no b tags
     second_selection->addSelectionModule(new HTlepCut(150));
     second_selection->addSelectionModule(new METCut(20));
 
+    Selection* NoBTagSel = new Selection("NoBTagSelection");
+    NoBTagSel->addSelectionModule(new NBTagSelection(0,0,e_CSVL));
+
     Selection* TopTagSel = new Selection("TopTagSelection");
-    TopTagSel->addSelectionModule(new NTopTagSelection(1,int_infinity(),400.0,0.7));
+    TopTagSel->addSelectionModule(new NTopTagSelection(1,1));
 
     RegisterSelection(mttbar_gen_selection);
     RegisterSelection(trig_selection);
     RegisterSelection(first_selection);
     RegisterSelection(second_selection);
+    RegisterSelection(NoBTagSel);
     RegisterSelection(TopTagSel);
 
 
@@ -132,6 +136,20 @@ void MistagSelectionCycle::BeginInputData( const SInputData& id ) throw( SError 
     RegisterHistCollection( new TauHists("Tau_Cleaned") );
     RegisterHistCollection( new TopJetHists("TopJets_Cleaned") );
 
+    RegisterHistCollection( new EventHists("Event_TopTagNoBTag") );
+    RegisterHistCollection( new JetHists("Jets_TopTagNoBTag") );
+    RegisterHistCollection( new ElectronHists("Electron_TopTagNoBTag") );
+    RegisterHistCollection( new MuonHists("Muon_TopTagNoBTag") );
+    RegisterHistCollection( new TauHists("Tau_TopTagNoBTag") );
+    RegisterHistCollection( new TopJetHists("TopJets_TopTagNoBTag") );
+
+    RegisterHistCollection( new EventHists("Event_TopTagBTag") );
+    RegisterHistCollection( new JetHists("Jets_TopTagBTag") );
+    RegisterHistCollection( new ElectronHists("Electron_TopTagBTag") );
+    RegisterHistCollection( new MuonHists("Muon_TopTagBTag") );
+    RegisterHistCollection( new TauHists("Tau_TopTagBTag") );
+    RegisterHistCollection( new TopJetHists("TopJets_TopTagBTag") );
+
     RegisterHistCollection( new EventHists("Event_TopTag") );
     RegisterHistCollection( new JetHists("Jets_TopTag") );
     RegisterHistCollection( new ElectronHists("Electron_TopTag") );
@@ -139,12 +157,40 @@ void MistagSelectionCycle::BeginInputData( const SInputData& id ) throw( SError 
     RegisterHistCollection( new TauHists("Tau_TopTag") );
     RegisterHistCollection( new TopJetHists("TopJets_TopTag") );
 
+    RegisterHistCollection( new EventHists("Event_NoTopTagNoBTag") );
+    RegisterHistCollection( new JetHists("Jets_NoTopTagNoBTag") );
+    RegisterHistCollection( new ElectronHists("Electron_NoTopTagNoBTag") );
+    RegisterHistCollection( new MuonHists("Muon_NoTopTagNoBTag") );
+    RegisterHistCollection( new TauHists("Tau_NoTopTagNoBTag") );
+    RegisterHistCollection( new TopJetHists("TopJets_NoTopTagNoBTag") );
+
+    RegisterHistCollection( new EventHists("Event_NoTopTagBTag") );
+    RegisterHistCollection( new JetHists("Jets_NoTopTagBTag") );
+    RegisterHistCollection( new ElectronHists("Electron_NoTopTagBTag") );
+    RegisterHistCollection( new MuonHists("Muon_NoTopTagBTag") );
+    RegisterHistCollection( new TauHists("Tau_NoTopTagBTag") );
+    RegisterHistCollection( new TopJetHists("TopJets_NoTopTagBTag") );
+
     RegisterHistCollection( new EventHists("Event_NoTopTag") );
     RegisterHistCollection( new JetHists("Jets_NoTopTag") );
     RegisterHistCollection( new ElectronHists("Electron_NoTopTag") );
     RegisterHistCollection( new MuonHists("Muon_NoTopTag") );
     RegisterHistCollection( new TauHists("Tau_NoTopTag") );
     RegisterHistCollection( new TopJetHists("TopJets_NoTopTag") );
+
+    RegisterHistCollection( new EventHists("Event_BTag") );
+    RegisterHistCollection( new JetHists("Jets_BTag") );
+    RegisterHistCollection( new ElectronHists("Electron_BTag") );
+    RegisterHistCollection( new MuonHists("Muon_BTag") );
+    RegisterHistCollection( new TauHists("Tau_BTag") );
+    RegisterHistCollection( new TopJetHists("TopJets_BTag") );
+
+    RegisterHistCollection( new EventHists("Event_NoBTag") );
+    RegisterHistCollection( new JetHists("Jets_NoBTag") );
+    RegisterHistCollection( new ElectronHists("Electron_NoBTag") );
+    RegisterHistCollection( new MuonHists("Muon_NoBTag") );
+    RegisterHistCollection( new TauHists("Tau_NoBTag") );
+    RegisterHistCollection( new TopJetHists("TopJets_NoBTag") );
 
     RegisterHistCollection( new EventHists("Event_Kinesel") );
     RegisterHistCollection( new JetHists("Jets_Kinesel") );
@@ -205,6 +251,7 @@ void MistagSelectionCycle::ExecuteEvent( const SInputData& id, Double_t weight) 
     static Selection* trig_selection = GetSelection("trig_selection");
     static Selection* first_selection = GetSelection("first_selection");
     static Selection* second_selection = GetSelection("second_selection");
+    static Selection* NoBTagSel = GetSelection("NoBTagSelection");
     static Selection* TopTagSel = GetSelection("TopTagSelection");
 
     static Selection* mttbar_gen_selection = GetSelection("Mttbar_Gen_Selection");
@@ -248,9 +295,30 @@ void MistagSelectionCycle::ExecuteEvent( const SInputData& id, Double_t weight) 
     if(!second_selection->passSelection())  throw SError( SError::SkipEvent );
 
     FillControlHists("_Kinesel");
+    bool nobtag = NoBTagSel->passSelection();
+    if(nobtag){
+        FillControlHists("_NoBTag");
+    } else {
+        FillControlHists("_BTag");
+    }
 
-    if(TopTagSel->passSelection())
+    bool toptag = TopTagSel->passSelection();
+
+    if(toptag) {
         FillControlHists("_TopTag");
+        if(nobtag) {
+            FillControlHists("_TopTagNoBTag");
+        } else {
+            FillControlHists("_TopTagBTag");
+        }
+    } else {
+        FillControlHists("_NoTopTag");
+        if(nobtag) {
+            FillControlHists("_NoTopTagNoBTag");
+        } else {
+            FillControlHists("_NoTopTagBTag");
+        }
+    }
 
     // control histograms
     FillControlHists("_Postsel");
