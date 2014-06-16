@@ -63,6 +63,8 @@ private:
   int m_Nbtags_max;
   int m_Nbtags_min;
 
+  std::string m_flavor_selection;
+
   Cleaner* m_cleaner;
 
   // Macro adding the functions for dictionary generation

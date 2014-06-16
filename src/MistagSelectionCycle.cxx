@@ -19,12 +19,14 @@ MistagSelectionCycle::MistagSelectionCycle()
     // set the integrated luminosity per bin for the lumi-yield control plots
     SetIntLumiPerBin(500.);
 
+    m_flavor_selection = "None";
+
     m_sys_var = e_Default;
     m_sys_unc = e_None;
     m_mttgencut = false;
     DeclareProperty( "ApplyMttbarGenCut", m_mttgencut );
     DeclareProperty( "Electron_Or_Muon_Selection", m_Electron_Or_Muon_Selection );
-
+    DeclareProperty( "ApplyFlavorSelection", m_flavor_selection );
     //default: no btagging cuts applied, other cuts can be defined in config file
     m_Nbtags_min=0;
     m_Nbtags_max=int_infinity();
@@ -96,9 +98,25 @@ void MistagSelectionCycle::BeginInputData( const SInputData& id ) throw( SError 
 
     first_selection->addSelectionModule(new TwoDCut());
 
+    std::transform(
+        m_flavor_selection.begin(), m_flavor_selection.end(), m_flavor_selection.begin(), ::tolower
+    );
+    if (m_flavor_selection == "bflavor") {
+        m_logger << INFO << "Applying b flavor selection" << SLogger::endmsg;
+        first_selection->addSelectionModule(new EventFlavorSelection(e_BFlavor));
+    } else if (m_flavor_selection == "cflavor") {
+        m_logger << INFO << "Applying c flavor selection" << SLogger::endmsg;
+        first_selection->addSelectionModule(new EventFlavorSelection(e_CFlavor));
+    } else if (m_flavor_selection == "lflavor") {
+        m_logger << INFO << "Applying l flavor selection" << SLogger::endmsg;
+        first_selection->addSelectionModule(new EventFlavorSelection(e_LFlavor));
+    } else if (m_flavor_selection != "none") {
+        m_logger << ERROR << "Unknown ApplyFlavorSelection option --- should be either `BFlavor`, `CFlavor` or `LFlavor`" << SLogger::endmsg;
+    }
+
     Selection* second_selection= new Selection("second_selection");
 
-    second_selection->addSelectionModule(new NTopJetSelection(1,1,400,2.4));// top jet candidate with pT > 400
+    second_selection->addSelectionModule(new NTopJetSelection(1,int_infinity(),300,2.4));// top jet candidate with pT > 400
     //second_selection->addSelectionModule(new NBTagSelection(0,0,e_CSVL)); //no b tags
     second_selection->addSelectionModule(new HTlepCut(150));
     second_selection->addSelectionModule(new METCut(20));
@@ -107,7 +125,7 @@ void MistagSelectionCycle::BeginInputData( const SInputData& id ) throw( SError 
     NoBTagSel->addSelectionModule(new NBTagSelection(0,0,e_CSVL));
 
     Selection* TopTagSel = new Selection("TopTagSelection");
-    TopTagSel->addSelectionModule(new NTopTagSelection(1,1));
+    TopTagSel->addSelectionModule(new LTopTagSelection());
 
     RegisterSelection(mttbar_gen_selection);
     RegisterSelection(trig_selection);
